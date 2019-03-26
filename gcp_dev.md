@@ -206,6 +206,39 @@ As long as service resources are behind a google load balancer, most of these st
 - Creating a Pub/Sub topic: create the topic in the UI or programmatically, then create a subscription. You can push messages to the topic and pick them up via the subscription. 
 
 3.7 Deploying and implementing networking resources
+- Creating an auto mode VPC with subnets: An auto mode VPC will have a subnet in each region. Custom VPC can be created with subnets only in designated zones.
+
+- Creating ingress and egress firewall rules for a VPC (e.g., IP subnets, Tags, Service accounts): Firewall rules can target traffic using the following conditions:
+    - All instances in the network TODO vs subnet
+    - Instances with a matching network tag (a different entity than labels, a key value pair for grouping related resources)
+    - Instances with a specific service account
+    
+    More [here](https://cloud.google.com/vpc/docs/firewalls)
+- Setting up a domain using Cloud DNS: You will need to:
+    - Get a domain name through a registrar. Google offers this service, but you can get it from others as well.
+    - Get an IP address to point the A record to.
+    - Create a managed public zone: a container for DNS records of the name suffix. It has a set of name servers that respond to queries. 
+    - Create a managed private zone: like the public one, but only visible from specified VPCs.
+    - Create the record for the IP address and the A record.
+    - Create a CNAME record
+    - Update domain name servers to push new recoreds. 
+
+    Find the full version [here](https://cloud.google.com/dns/docs/quickstart).
+
+3.8 Automating resource provisioning with Deployment Manager
+
+Personally I prefer cloud agnostic tools (see ongoing github/cloud repo feud). I would look to Jenkins, Terraform, and Chef for this. [But...](https://cloud.google.com/deployment-manager/docs/quickstart)
+
+You define your resources in `.yaml` files. The file can contain templates, which are similar to terraform modules- boilerplate resources that can be called in the resource file. A template is written in python or jinja2. You deploy resources using `gcloud`. Once the resource collection has been created, a manifest is created. This file, like terraform state files, holds the desired state configuration. The manifest is updated to reflect updated runs of the the deployment file. You can destroy resources in the file the same way. There is a [repository](https://github.com/GoogleCloudPlatform/deploymentmanager-samples) of samples (hosted on github) for various types of resources. See the [Docs](https://cloud.google.com/deployment-manager/docs/fundamentals)
+
+3.9 Managing Service accounts
+- Creating a service account with a minimum number of scopes required: After creating the service account, it should be added to only the roles with the permissions it will need (priniple of least privilage). For example, if a server needs to read data from files in a bucket, it should only have read rights to Cloud Storage, and no other rights. TODO can you add conditional rights to a specific resouce? See [Docs](https://cloud.google.com/iam/docs/granting-roles-to-service-accounts)
+- Downloading and using a service account private key file: You can create a public/private key pair associated with a service role like [so](https://cloud.google.com/iam/docs/creating-managing-service-account-keys). Keys generated in the console vs the api will have slighly different structures. Make sure the workflow is standardize to avoid errors. This key can be used for non-GCP resorces to authenticate into the environment with that service account's permissions. 
+#### Section 4: Integrating Google Cloud Platform Services
+4.1 Integrating an application with Data and Storage services
+- Enabling BigQuery and setting permissions on a dataset: There are a number of [permissions and roles](https://cloud.google.com/bigquery/docs/access-control) associated with BigQuery. Setting up a service account with the desired rights will allow compute resources to access BigQuery data at the desired level (read, write, delete, etc)
+- Writing a SQL query to retrieve data from relational databases: All coding languages and frameworks will have their own tools/libraries for interfacing with SQL databases. Set the database endpoint to the one provided by GCP, and construct queries in SQL. Cloud Spanner allows you to query the db using the [SDK](https://cloud.google.com/spanner/docs/reference/libraries#client-libraries-install-python).
+- Analyzing data using BigQuery: This is a devloper exam, not an analyst one. You can construct SQL-like queries in BigQuery, but for robust analysis, you will need an analytics tool, like [Datalab](https://cloud.google.com/datalab/docs/).
 
 
 
