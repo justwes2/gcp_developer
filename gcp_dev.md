@@ -154,7 +154,59 @@ As long as service resources are behind a google load balancer, most of these st
 - Deploying a GKE cluster: `gcloud container clusters create [arguments]`. [Clusters](https://cloud.google.com/kubernetes-engine/docs/how-to/creating-a-cluster) can be zonal, regional, private (nodes not accessable on internet), and alpha (not recommended for public use)
 - Deploying a containerized application to GKE: Create a [Deployment](https://cloud.google.com/kubernetes-engine/docs/concepts/deployment). A deployment is a set of identical pods running a set of containers defined in a manifest (YAML) file. Here's a [tutorial](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)
 -  Configuring GKE application monitoring and logging: [StackDriver](https://cloud.google.com/monitoring/kubernetes-engine/) supports monitoring for GKE. Legacy StackDriver (GA) and SD Kubernetes Monitoring (beta) are offered. There is a Stackdriver K8s Monitoring Console dashboard showing metrics. 
-- Creating a load balancer for GKE instances: 
+- Creating a load balancer for GKE instances: GKE supports TCP/UDP and HTTP(S) load balancers for public access. TCP load balancers are not aware of individual HTTP(S) requests, and do not feature health checks. HTTP(S) loadbalancers use Ingress, and are sensitive to requests to make context aware decisions. They feature URL maps the TLS termination. GKE automatically configures health checks. More [here](https://cloud.google.com/kubernetes-engine/docs/tutorials/http-balancer). Internal load balancers are a service that can be configured like [so](https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing). The service's `spec` will include `type: LoadBalancer` in the `service.yaml`. See example:
+    ```
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: [SERVICE_NAME]
+    annotations:
+        cloud.google.com/load-balancer-type: "Internal"
+    labels:
+        [KEY]: [VALUE]
+    spec:
+    type: LoadBalancer
+    loadBalancerIP: [IP_ADDRESS] # if omitted, an IP is generated
+    loadBalancerSourceRanges:
+    - [IP_RANGE] # defaults to 0.0.0.0/0
+    ports:
+    - name: [PORT_NAME]
+        port: 9000
+        protocol: TCP # default; can also specify UDP
+    selector:
+        [KEY]: [VALUE] # label selector for Pods to target
+    ```
+
+- Building a container image using Cloud build: Create a build config `.yaml` file, like [so](https://cloud.google.com/cloud-build/docs/configuring-builds/create-basic-configuration). Add steps to the file, will existing images, and arguments with specific instructions. Once the config file looks right, you can use the `images` field to determine where the build will be stored. 
+
+3.4 Deploying  an application to App Engine. 
+- Scaling configuration: You can set scaling to determine the inital number of instances (don't like the overlap of terminology), how instances are created or stopped, and how long an instance has to handle a request. You can use auto scaling for dynamic instances, manual scaling for resident instances, and basic scaling for dynamic instaces. For dynamic instances, the App Engine scheduler decides if a request can be managed by existing instances or if another one must be created. You can use metrics such as target_cpu_utilization, target_throughput_utilization, and max_concurrent_requests to optimize scaling. Each instance has its own queue of requests. Scaling is configured in the `app.yaml` for the version of the service. More [here](https://cloud.google.com/appengine/docs/standard/python/how-instances-are-managed).
+- Versions: App Engine deployments are versioned. Traffic splitting can be done along versions for canary deployments. This streamlines rollback when issues arise.
+- Blue/green deployment: Since deployments are versioned, you can cut 100% of traffic from one version of the deployment to the new one, once it has been approved for prod use. 
+
+3.5 Depoloying a Cloud Function
+- Cloud Functions that are triggered via an event (e.g., Cloud Pub/Sub events, Cloud Storage object change notification events): When configuring a Cloud Function, it can subscribe to a pub/sub topic, and new writes can trigger the function, passing in information. Changes to objects in a bucket (upload, deletion, etc) can also trigger stuff.
+- Cloud Functions that are invoked via HTTP: All Cloud Functions have an HTTP endpoint. Hitting that endpoint can trigger the function, and it will return the output of the function. More [here](https://cloud.google.com/functions/docs/calling/http).
+
+3.6 Creating data storage resources
+- Creating a Cloud Repository: Use github, or gitlab, or whatever. I defy you to show a use case where Cloud Repository is the best solution. In that [case...](https://cloud.google.com/source-repositories/docs/creating-an-empty-repository)
+-  Creating a Cloud SQL instance: Can be [done](https://cloud.google.com/sql/docs/mysql/create-manage-databases) via the console, gcloud, or api.
+- Creating compostie indexes in Cloud Datastore: Composite indexes index multiple property values per indexed entity- they support complex queries and are defined in the index config file (`index.yaml`). These are needed for the following: 
+    - Queries with ancestor and inequality filters
+    - Queries with one or more inequality filters on a property and one or more equality filters on other properties
+    - Queries with a sort order on keys in descending order
+    - Queries with multiple sort orders
+    - Queries with one or more filters and one or more sort orders
+
+    Per [docs](https://cloud.google.com/datastore/docs/concepts/indexes)
+- Creating BigQuery datasets: [Can be done](https://cloud.google.com/bigquery/docs/datasets#bigquery_create_dataset-cli) via the console, command line, or API. When creating a dataset, its location is immutable. 
+- Planing and deploying Cloud Spanner: [Whitepapers](https://cloud.google.com/spanner/docs/whitepapers) for later. Create an instance, a database within the instance, and schema for tables within the DB and insert data, per [Docs](https://cloud.google.com/spanner/docs/quickstart-console). You can query and write to the DB via the gcloud sdk in nodejs, python, and go, [per](https://cloud.google.com/spanner/docs/use-cloud-functions#functions-calling-spanner-python). 
+- Creating a Cloud Storage Bucket: Go to cloud storage, click 'create bucket', choose a globally unique name.
+- Creating a Cloud Storage Bucket and selecting appropriate storage class: When creating bucket, select from one of: multiregional, regional, nearline, and coldline. You can set up lifecycle policies to turn older objects to cheaper classes. Not all objects in the bucket must be of the same class, but regional buckets and multi regional buckets cannot support the other class (but both support nearline and coldline).
+- Creating a Pub/Sub topic: create the topic in the UI or programmatically, then create a subscription. You can push messages to the topic and pick them up via the subscription. 
+
+3.7 Deploying and implementing networking resources
+
 
 
 
