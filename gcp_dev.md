@@ -239,7 +239,12 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 - Enabling BigQuery and setting permissions on a dataset: There are a number of [permissions and roles](https://cloud.google.com/bigquery/docs/access-control) associated with BigQuery. Setting up a service account with the desired rights will allow compute resources to access BigQuery data at the desired level (read, write, delete, etc)
 - Writing a SQL query to retrieve data from relational databases: All coding languages and frameworks will have their own tools/libraries for interfacing with SQL databases. Set the database endpoint to the one provided by GCP, and construct queries in SQL. Cloud Spanner allows you to query the db using the [SDK](https://cloud.google.com/spanner/docs/reference/libraries#client-libraries-install-python).
 - Analyzing data using BigQuery: This is a devloper exam, not an analyst one. You can construct SQL-like queries in BigQuery, but for robust analysis, you will need an analytics tool, like [Datalab](https://cloud.google.com/datalab/docs/).
-
+- Fetching data from various databases: Managed databases have SDKs that can be used for queries in addition to a more conventional interface library in appilcation code. 
+- Enabling Cloud SQL and configuring an instance: Using this [tutorial](https://cloud.google.com/sql/docs/mysql/quickstart), you can create an instance using the console (or gcloud or the api). After the instance has been created, use `gcloud sql connect <instance_name> --user=root`, provide the root password used when creating the instances, and you will be brought to the MySQL or PostgreSQL prompt. You can create databases and upload data using standard SQL. 
+- Connecting to a Cloud SQL instance: Use the `gcloud sql connect` command above. 
+- Enabling Cloud Spanner and configuring an instance: You can create an instances and configure the schema etc using the [console](https://cloud.google.com/spanner/docs/quickstart-console). 
+- Creating an application that uses Cloud Spanner: Cloud Spanner has client libraries in most major programming languages. See [more](https://cloud.google.com/spanner/docs/reference/libraries#client-libraries-install-python) on writing code to interface.
+- Configuring a Cloud Pub/Sub push subscription to call an endpoint: 
 
 
 
