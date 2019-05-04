@@ -1,36 +1,5 @@
 # GCP Developer Exam Review
 
-### Pre Exam Questions
-1. You have a service running on Compute Engine virtual machine instances behind a global load balancer. You need to ensure that when the instance fails, it is recovered. What should you do?
- 
-    Set up health checks in the managed instance group configuration- the managed instance group health check will recreate instances when they fail. This is the *platform native* way to do this. [Docs](https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-managed-instances#monitoring_groups%29)
-
-2. You have an application that accepts inputs from users. The application needs to kick off different background tasks based on these inputs. You want to allow for automated asynchronous execution of these tasks as soon as input is submitted by the user. Which product should you use?
-
-   [Cloud Tasks](https://cloud.google.com/tasks/docs/dual-overview)- "lets an applications perform developer-defined pieces of work, called tasks, outside of a user request". It is asynchronous- there are no strong guarantees on FIFO or timing. Tasks(items of work) are added to queues. Tasks are performed later by workers. Tasks manages issues like user-facing latency costs, crashes, resouce limitations, and reentry mgmt. Typically used to speed user response by pushing database updates to worker/task. 
-
-3. As part of their expansion, [HipLocal](goo.gl/NpR3y2) is creating new projects in order to separate resources. They want to build a system to automate enabling of their APIs. What should they do?
-
-   Use the service management API to enable the compute API- Case study shows use of VMs, not storage. Don't need to create a new services. Service Mgmt allows service producers to publish their services so they can be discovered/used by service consumers([Docs](https://cloud.google.com/service-infrastructure/docs/service-management/reference/rest/))
-
-4. Your team is using App Engine to write every Cloud Pub/Sub message to both a Cloud Storage object and a BigQuery table. You want to achieve the greatest resource efficiency. Which architecture should you implement?
-
-   One topic, 2 subscriptions, 2 app engines:
-   ```
-                 -Pub/Sub Push Subscription - App Engine/Write to BigQuery
-   Pub/Sub Topic-
-                 -Pub/Sub Push Subscription - App Engine/Write to Cloud Storage
-    ```
-    Because each App Engine can run/fail/retry independently. Using a single stream, if one write fails, it could lead to duplication
-
-5.  Your teammate has asked you to review the code below. Its purpose is to query account entities in Cloud Datastore for those with a balance greater than 10000 and an age less than 4. Which improvement should you suggest your teammate make?
-![alt text](https://lh3.googleusercontent.com/rlfMjBQ84eIEeHBy52q14N54IFPz0DQS7Sx9sVht7kVbMtIdw2X7Ig75TcoJi9_V1sCMU7ORDA=w740 "DataStore Query")
-   Send two queries- one for balances over 10000, and another for ages less than 4- and compute the intersection- two inequality comparisons aren't permitted in a Datastore query and it requires two queries to be merged
-
-6. Your organization has grown, and new teams need access to manage network connectivity within and across projects. You are now seeing intermittent timeout errors in your application. You want to find the cause of the problem. What should you do?
-
-   Configure VPC flow logs for each of the subnets in your VPC- uses the substrate specific logging to capture everything
-
 ### [Study Guide](https://cloud.google.com/certification/guides/cloud-developer/)
 
 #### Section 1: Designing highly scalable, availible, and reliable cloud-native applications
@@ -308,11 +277,29 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 - Viewing logs in the GCP console: Like streaming logs in the console, navigate to the stackdriver>logging>logs. Logs will be displayed there. They can be search or filtered. 
 - Profiling performance of request-response: profiler can show where in the request-response lifecycle the most resources are being used to determine where source code may need to be optimized. _There was nothing in the docs that focused on the particular use case so ymmv_
 - Profiling services: You can use stackdriver [profiler](https://cloud.google.com/profiler/docs/quickstart) to gather information about cpu and memory allocation from apps, and maps the consumption back to source code to identify intensive operations and other information about the source code. 
-- Reviewing application performance using Stackdriver Trace and Stackdriver Logging: 
+- Reviewing application performance using Stackdriver Trace and Stackdriver Logging: Use [trace](https://github.com/GoogleCloudPlatform/gke-tracing-demo#validation) to see the span of https requests in a SOA app. You can see what calls are taking the most time, and where the bottlenecks are (similart to [jaeger](https://www.jaegertracing.io/), the opensource network tool). [Logging](https://github.com/GoogleCloudPlatform/gke-tracing-demo#monitoring-and-logging) provides a single pane of glass to view platform and application logs. Based on bottlenecks identified in trace, you can filter the logs to view those related to the specific service that is performing poorly to determine what changes would best address issues.
+- Monitoring and profiling a running application: after configuring [profiler](https://cloud.google.com/profiler/docs/quickstart) in an app, you can view the app in the profiler console. It will generate a flame graph for examining the data. Data can be viewed by service, and filtered on a number of catagories. The levels in the graph represent all processes, from the entire executable (100% of all resources used), down through the modules, into the specific funtions. The exact breakout will vary by runtime/language. Using profiler, you can identify specific funtions in an application that are consuming the most resources. These may be candidates for refactoring or other optimization.
+
+5.4 Diagnosing and resolving application performance issues.
+- Setting up time checks and other basic alerts: An [uptime check](https://cloud.google.com/monitoring/uptime-checks/) is a GET request on a URL at a specificed interval. The results of the check are written into stackdriver logs (and can be ported to another logging platform). You can set up [alerting](https://cloud.google.com/monitoring/uptime-checks/uptime-alerting-policies) to take action- either sending an email or other notification channels. 
+- Setting up logging and tracing: Enable logging by installing and configuring the stackdriver agent on the relevant vm/service. See above for details. [Trace](https://cloud.google.com/trace/docs/setup/) is enabled by default on app engine standard. It can be configured in other compute resources using: c#, java, go, node.js, php, python, and ruby.
+- Setting up resources monitoring: GCP monitors a [staggaring](https://cloud.google.com/monitoring/api/resources) number of resource types. Monitoring of GCP resources' default metrics is set up in stackdriver. Custom metrics can be created- see above. AWS resources can be monitored, but must be [configured](https://cloud.google.com/monitoring/quickstart-aws) though a connector project. 
+- Troubleshooting network issues: Trace is the service best suited to identifying network issues from origin to completion, each part of the lifecycle can be viewed to identify latency and other issues. 
+- Debugging/tracing cloud apps: Use trace to follow calls through your app to identify what calls what, and where bottlenecks occur. If a bottleneck or other issue is identified, use debugger to create a snapshot of the 'state' of the app at that point, to understand what the issue is. 
+- Troubleshooting issues with the image/OS: If a root drive is not working as intended, detach it, and mount it as a secondary volume on another vm. From there, you can search for corruptued files or configuration issues that may be impacting the vm/image. If the stackdriver agent is installed, the logs may be useful as well. 
+- GCP docs are pretty good, relevant links to docs, tutorials, blogs, and other resources are peppered in throughout. 
+
+
 
 ### NB:
 - Cloud SQL not HA cross regionally
 - Bigtable not globally availible
+- [Stackdriver](https://medium.com/google-cloud/tagged/stackdriver):
+    - Trace
+    - Debugger
+    - Monitoring
+    - Profiler
+    - Logging
 
 
 ### Glossary (terms I don't know/Stuff I need to understand better):
@@ -329,3 +316,34 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 - [VPC service controls](https://cloud.google.com/vpc-service-controls/docs/)- Allows user to constrain managed services (buckets, BigTable, BigQuery) within VPC
 - [Cloud Armor](https://cloud.google.com/armor/)- defense at scale against DDoS attacks
 - [Cloud Identity-Aware Proxy](https://cloud.google.com/iap/docs/)- Uses identity and context to allow secure auth without VPN. Works for App Engine, Compute and GKE
+
+### Pre Exam Questions I got wrong
+1. You have a service running on Compute Engine virtual machine instances behind a global load balancer. You need to ensure that when the instance fails, it is recovered. What should you do?
+ 
+    Set up health checks in the managed instance group configuration- the managed instance group health check will recreate instances when they fail. This is the *platform native* way to do this. [Docs](https://cloud.google.com/compute/docs/instance-groups/creating-groups-of-managed-instances#monitoring_groups%29)
+
+2. You have an application that accepts inputs from users. The application needs to kick off different background tasks based on these inputs. You want to allow for automated asynchronous execution of these tasks as soon as input is submitted by the user. Which product should you use?
+
+   [Cloud Tasks](https://cloud.google.com/tasks/docs/dual-overview)- "lets an applications perform developer-defined pieces of work, called tasks, outside of a user request". It is asynchronous- there are no strong guarantees on FIFO or timing. Tasks(items of work) are added to queues. Tasks are performed later by workers. Tasks manages issues like user-facing latency costs, crashes, resouce limitations, and reentry mgmt. Typically used to speed user response by pushing database updates to worker/task. 
+
+3. As part of their expansion, [HipLocal](goo.gl/NpR3y2) is creating new projects in order to separate resources. They want to build a system to automate enabling of their APIs. What should they do?
+
+   Use the service management API to enable the compute API- Case study shows use of VMs, not storage. Don't need to create a new services. Service Mgmt allows service producers to publish their services so they can be discovered/used by service consumers([Docs](https://cloud.google.com/service-infrastructure/docs/service-management/reference/rest/))
+
+4. Your team is using App Engine to write every Cloud Pub/Sub message to both a Cloud Storage object and a BigQuery table. You want to achieve the greatest resource efficiency. Which architecture should you implement?
+
+   One topic, 2 subscriptions, 2 app engines:
+   ```
+                 -Pub/Sub Push Subscription - App Engine/Write to BigQuery
+   Pub/Sub Topic-
+                 -Pub/Sub Push Subscription - App Engine/Write to Cloud Storage
+    ```
+    Because each App Engine can run/fail/retry independently. Using a single stream, if one write fails, it could lead to duplication
+
+5.  Your teammate has asked you to review the code below. Its purpose is to query account entities in Cloud Datastore for those with a balance greater than 10000 and an age less than 4. Which improvement should you suggest your teammate make?
+![alt text](https://lh3.googleusercontent.com/rlfMjBQ84eIEeHBy52q14N54IFPz0DQS7Sx9sVht7kVbMtIdw2X7Ig75TcoJi9_V1sCMU7ORDA=w740 "DataStore Query")
+   Send two queries- one for balances over 10000, and another for ages less than 4- and compute the intersection- two inequality comparisons aren't permitted in a Datastore query and it requires two queries to be merged
+
+6. Your organization has grown, and new teams need access to manage network connectivity within and across projects. You are now seeing intermittent timeout errors in your application. You want to find the cause of the problem. What should you do?
+
+   Configure VPC flow logs for each of the subnets in your VPC- uses the substrate specific logging to capture everything
