@@ -289,8 +289,6 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 - Troubleshooting issues with the image/OS: If a root drive is not working as intended, detach it, and mount it as a secondary volume on another vm. From there, you can search for corruptued files or configuration issues that may be impacting the vm/image. If the stackdriver agent is installed, the logs may be useful as well. 
 - GCP docs are pretty good, relevant links to docs, tutorials, blogs, and other resources are peppered in throughout. 
 
-
-
 ### NB:
 - Cloud SQL not HA cross regionally
 - Bigtable not globally availible
@@ -303,13 +301,24 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 
 
 ### Glossary (terms I don't know/Stuff I need to understand better):
-- Cloud Memorystore
-- [SQL Union operator](https://www.techonthenet.com/sql/union.php)
-- [SQL Cross Join](https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#join-types)
-- SQL Unnest
-- Service Mgmt Api
-- Wireshark
-- Cloud tasks
+- [Cloud Memorystore](https://cloud.google.com/memorystore/docs/redis/): managed redis service. [Redis](https://redis.io/) is an in-memory data structure store. 
+- [SQL Union operator](https://www.techonthenet.com/sql/union.php): The UNION operator combines results of two or more SELECT statements. The statements must have the same number of columns, be of similar data types, and the columns must be in the same order. Use UNION ALL to get all values, not just the distinct ones. 
+- [SQL Cross Join](https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#join-types): produces a set that is the number or rons in the first table multiplied by the number of rows in teh section table, aka a Cartesian Product. If a WHERE clause is used, it becomes an inner join. For example, this can combine an inventory table with a store list to create a table for inventory at all stores. 
+- SQL [Unnest](https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest):takes an array and returns a table with one row for each element in the array. 
+    ```
+    SELECT *
+    FROM UNNEST(ARRAY<STRUCT<x INT64, y STRING>>[(1, 'foo'), (3, 'bar')]);
+
+    +---+-----+
+    | x | y   |
+    +---+-----+
+    | 3 | bar |
+    | 1 | foo |
+    +---+-----+
+    ```
+- [Service Mgmt Api](https://cloud.google.com/service-infrastructure/docs/service-management/reference/rest/): allows service producers to publish their services on Google Cloud Platform so that they can be discovered and used by service consumers. [See more](https://cloud.google.com/service-infrastructure/docs/service-management/getting-started)
+- [Wireshark](https://www.wireshark.org/): a network protocol analyzer. 
+- [Cloud tasks](https://cloud.google.com/tasks/docs/): manage large numbers of async, distributed tasks by setting up queues.
 - Cloud Composer
 - DataStore Queries
 - VPC flow logs
