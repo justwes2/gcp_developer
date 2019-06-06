@@ -1,6 +1,6 @@
 # GCP Developer Exam Review
 
-### [Study Guide](https://cloud.google.com/certification/guides/cloud-developer/)
+### Annotated Study Guide - [See the Guide](https://cloud.google.com/certification/guides/cloud-developer/)
 
 #### Section 1: Designing highly scalable, available, and reliable cloud-native applications
 1.1 Designing performant applications and APIs
@@ -9,8 +9,8 @@
     - CaaS: GCE, autoscaling, failover, etc managed
     - PaaS: Cloud Functions, all ops managed by platform, infinitely scalable
 - Portability vs. platform-specific design: As a rule, the more a solution is 'managed', the less portable it is. VMs move as images across providers fairly well, but Serverless Functions must be rewritten to accommodate the specific CSP. Containers are an interesting case- the container itself is designed to be portable, and K8s should be portable by design. (Not enough exposure to validate)
-- Evaluating different services and technologies:TODO wow this is frustratingly vague. Things to look for:
-    - Level of mgmt: as services are more managed, it decreases ops workload. However, sometimes this sacrifices flexibility for more specialized configuration. (I.e. a managed DB service patches according to the service's schedule, not when the app is ready to support(not a great ex, but that's the idea))
+- Evaluating different services and technologies: Things to look for:
+    - Level of mgmt: as services are more managed, it decreases ops workload. However, sometimes this sacrifices flexibility for more specialized configuration. (I.e. a managed DB service patches according to the service's schedule, not when the app is ready to support(not a great ex, but that's the idea)
     - Cost: TCO, managed services can be more expensive, but *can* deliver more value. 
     - HA/DR/Failover options: is the tech regional? Can it support multiregional solutions? How much of that is managed
 - Operating system versions and base runtimes of services:
@@ -18,12 +18,12 @@
     - Containers: GAE Standard supports: Python 2.7/3.7, Java 8, PHP 5.5/7.2, Go 1.9/1.11, and Nodejs (not sure what version). GAE also supports custom containers with flexible runtimes. 
     - Cloud Functions: Node.js 6/8, Python 3.7, Go 1.11
     - Cloud SQL: MySQL 5.5/5.6/5.7, Postgres 9.6
-- Geographic distribution of Google Cloud services: GCP has a bunch of regions, adding more all the time. Each region has at least 2 zone, which are geographically separate. VPCs can span regions, subnets can span zones. Different services have different geographic coverage.
+- Geographic distribution of Google Cloud services: GCP has a bunch of regions, adding more all the time. Each region has at least 2 zone, which are separate- but often on a shared campus. VPCs can span regions, subnets can span zones. Different services have different geographic coverage- not everything is available in all regions.
 - Microservices: Unlike traditional 'monoliths', microservice architectures involve units of functionality being broken up and managed separately. By loosely coupling systems, app teams can move more quickly, and update services in smaller, tighter release cycles.
 - Defining a key structure for high write applications using Cloud Storage, Cloud BigTable, Cloud Spanner, or Cloud SQL: All of these services are managed to different degrees. Ensuring that the key will not result in lots of write activity in a single shard of the database/storage (hotspotting) is essential. The best key will depend on the nature of the data and the application/queries. If a shard is getting 'hot', consider hashing additional information into the key to break up the writes.
 - Session management: Managed services like GAE and GKE, as well as google's load balancers, have sticky session as a managed feature so that users will interact with the same container throughout the duration of an interaction, to improve performance. 
 - Deploying and securing an API with cloud endpoints: Endpoints is an API Gateway style api manager that allows logging, securing, and monitoring of endpoints. It is available in OpenAPI, gRPC, and App Engine standard flavors. See the [Docs](https://cloud.google.com/endpoints/docs/)
-- Loosely coupled applications using asynchronous Cloud Pub/Sub events: Having services push to pub/sub allows supports reliable, scalable service designs. Once an events is written to a pub/sub subscription, a worker of whatever flavor will pick it up when able. This prevents data loss if a service is unavailable. Additionally, if an event is not marked as completed before it times out, it will be picked up by another worker. This prevents data loss when workers fail or error out. TODO confirm visibility timeout
+- Loosely coupled applications using asynchronous Cloud Pub/Sub events: Having services push to pub/sub allows supports reliable, scalable service designs. Once an events is written to a pub/sub subscription, a worker of whatever flavor will pick it up when able. This prevents data loss if a service is unavailable. Additionally, if an event is not marked as completed before it times out, it will be picked up by another worker. This prevents data loss when workers fail or error out. The default acknowledgement window is 10 sec, but can expand to 10 min. 
 - Health checks: Managed instance groups and K8s use health checks to ensure availability. If a vm or container fails a health check, those services can spin up another resource to ensure healthy compute resources are always available
 - Google-recommended practices and documentation: Google has lots of docs full of lots of opinions. Good luck with that. Most service docs will have a best practices page/section to refer to. 
 
@@ -61,20 +61,23 @@
 2.1 Setting up your development environment
 - Emulating GCP services for local application development: With GCP's scalability, it is possible to have a dev environment where condition mirror production very closely. When that is not feasible, containers are a good way to make sure local dev matches the GCP environment very closely. Infrastructure as Code is a good tool to make sure resources are created the same way each time they are created, so that dev machines function closely matches prod function.
 - Creating GCP projects: Projects are entities that contain and constrain resources. Every application should have a project per environment (dev, test, prod, etc). Projects allow for easy management of cost and access. 
+
 2.2 Building a continuous integration pipeline:
 - Creating a Cloud Source Repository and committing code to it: You can, but in a world with coca cola (github), why would you drink rite cola (CSR)? Source code repositories are a good thing. Use GCP's if it make sense for your org/project, but I can't find a use case where github wouldn't work just as well, if not better.
 - Creating container images from code: Using docker (because what else would you use?), create a Dockerfile with the configurations needed for the container (base image, ports opened, scripts to run, etc). Use Cloud Build to build the image based on the Dockerfile:
 
     `gcloud builds submit --tag gcr.io/[PROJECT_ID]/[IMAGE_NAME] .`
 
-Run from the directory (cloudshell) where the Dockerfile is located. More in [Docs](https://cloud.google.com/cloud-build/docs/quickstart-docker)
-- Developing unit tests for all code written: All major coding languages and frameworks have testing associated. Building tests into the build process is a good way to make sure poor quality code doesn't make it to deployment. There are a number of ways to impliment testing. All code written should include tests in the PR before the code is merged or a ticket is closed. Code reviews are important to make sure that tests are adequete. There are tools to test test coverage. Once tests are being written and reviewed, the pipeline should run all tests before building new artifacts/deploying new versions. 
-- Developing an integration pipeline using services (e.g. Cloud Build, Container Registry) to deploy the application to the target environment (e.g. development, testing, staging): For example, once PRs are merged into github/cloud source repository, a pipeline can build the container image, run all tests against the image, and if it passes, push the image into the container registry of the project associated with the desired environment- once a build in dev passes all tests, the image can be added to the container registry in the test account, for the testing team to vet, before approving to the production account. (Having a dedicated testing team is an anti-pattern in agile, but let's assume that not every team building pipelines in the cloud is perfectly agile yet)
+    Run from the directory (cloudshell) where the Dockerfile is located. More in [Docs](https://cloud.google.com/cloud-build/docs/quickstart-docker)
+- Developing unit tests for all code written: All major coding languages and frameworks have testing associated. Building tests into the build process is a good way to make sure poor quality code doesn't make it to deployment. There are a number of ways to implement testing. All code written should include tests in the PR before the code is merged or a ticket is closed. Code reviews are important to make sure that tests are adequate. There are tools to test test coverage. Once tests are being written and reviewed, the pipeline should run all tests before building new artifacts/deploying new versions. 
+- Developing an integration pipeline using services (e.g. Cloud Build, Container Registry) to deploy the application to the target environment (e.g. development, testing, staging): For example, once PRs are merged into github/cloud source repository, a pipeline can build the container image, run all tests against the image, and if it passes, push the image into the container registry of the project associated with the desired environment- once a build in dev passes all tests, the image can be added to the container registry in the test account, for the testing team to vet, before approving to the production account. (Having a dedicated testing team is an anti-pattern in agile, but let's assume that not every team building pipelines in the cloud is perfectly Agile yet)
 - Reviewing test results of a continuous integration pipeline: The goal of a CI pipeline is going to vary depending on context- some orgs will push for completely automated builds where the test results are logged somewhere, perhaps posted to slack, and life moves on. Others are going to need a workflow where once tests have run, they are reviewed by an approving entity before promotion. 
+
 2.3 Testing
 - Performance testing: Per [tutorialspoint](https://www.tutorialspoint.com/software_testing_dictionary/performance_testing.htm), performance testing is testing of system parameters under workload. Tests measure scalability, reliability, and resource usage. Performance testing techniques include Load testing, Stress testing, Soak testing, and Spike testing.
 - [Integration testing](https://martinfowler.com/bliki/IntegrationTest.html): tests how well independently developed units function in the system, versus unit testing, which tests how the units of code behave. 
--[Load testing](https://www.digitalocean.com/community/tutorials/an-introduction-to-load-testing): A subset of peformance testing, this involves simulating high load on the resources and measuring how they respond. Do autoscaling groups scale? Can the load balancer handle all the requests? Is the database keeping up will all the reads and writes? These are things to look for in load testing. 
+- [Load testing](https://www.digitalocean.com/community/tutorials/an-introduction-to-load-testing): A subset of peformance testing, this involves simulating high load on the resources and measuring how they respond. Do autoscaling groups scale? Can the load balancer handle all the requests? Is the database keeping up will all the reads and writes? These are things to look for in load testing. 
+
 2.4 Writing Code
 - Algorithm design: Wow, that's multiple semester's worth of material. When writing code, designing systems using the best algorithms will make systems more performant, decrease latency, and lead to a better user experience. There's a ton of content on that, like [this](https://www.geeksforgeeks.org/fundamentals-of-algorithms/). 
 - Modern application patterns: In GCP, microservices is the big one. Layer or tiered models are also common- a web tier, a backend, and a database, for a simple example. Monoliths are still around, but in the context of the exam are proabably not considered modern. Most web frameworks support an MVC model- model-view-controller. This is similar to the tiered approach. More [here](https://techbeacon.com/app-dev-testing/top-5-software-architecture-patterns-how-make-right-choice)
@@ -160,7 +163,7 @@ As long as service resources are behind a google load balancer, most of these st
 3.6 Creating data storage resources
 - Creating a Cloud Repository: Use github, or gitlab, or whatever. I defy you to show a use case where Cloud Repository is the best solution. In that [case...](https://cloud.google.com/source-repositories/docs/creating-an-empty-repository)
 -  Creating a Cloud SQL instance: Can be [done](https://cloud.google.com/sql/docs/mysql/create-manage-databases) via the console, gcloud, or api.
-- Creating compostie indexes in Cloud Datastore: Composite indexes index multiple property values per indexed entity- they support complex queries and are defined in the index config file (`index.yaml`). These are needed for the following: 
+- Creating composite indexes in Cloud Datastore: Composite indexes index multiple property values per indexed entity- they support complex queries and are defined in the index config file (`index.yaml`). These are needed for the following: 
     - Queries with ancestor and inequality filters
     - Queries with one or more inequality filters on a property and one or more equality filters on other properties
     - Queries with a sort order on keys in descending order
@@ -178,7 +181,7 @@ As long as service resources are behind a google load balancer, most of these st
 - Creating an auto mode VPC with subnets: An auto mode VPC will have a subnet in each region. Custom VPC can be created with subnets only in designated zones.
 
 - Creating ingress and egress firewall rules for a VPC (e.g., IP subnets, Tags, Service accounts): Firewall rules can target traffic using the following conditions:
-    - All instances in the network TODO vs subnet
+    - All instances in the network vs subnet (ingress only)
     - Instances with a matching network tag (a different entity than labels, a key value pair for grouping related resources)
     - Instances with a specific service account
     
@@ -201,14 +204,14 @@ Personally I prefer cloud agnostic tools (see ongoing github/cloud repo feud). I
 You define your resources in `.yaml` files. The file can contain templates, which are similar to terraform modules- boilerplate resources that can be called in the resource file. A template is written in python or jinja2. You deploy resources using `gcloud`. Once the resource collection has been created, a manifest is created. This file, like terraform state files, holds the desired state configuration. The manifest is updated to reflect updated runs of the the deployment file. You can destroy resources in the file the same way. There is a [repository](https://github.com/GoogleCloudPlatform/deploymentmanager-samples) of samples (hosted on github) for various types of resources. See the [Docs](https://cloud.google.com/deployment-manager/docs/fundamentals)
 
 3.9 Managing Service accounts
-- Creating a service account with a minimum number of scopes required: After creating the service account, it should be added to only the roles with the permissions it will need (priniple of least privilage). For example, if a server needs to read data from files in a bucket, it should only have read rights to Cloud Storage, and no other rights. TODO can you add conditional rights to a specific resouce? See [Docs](https://cloud.google.com/iam/docs/granting-roles-to-service-accounts)
-- Downloading and using a service account private key file: You can create a public/private key pair associated with a service role like [so](https://cloud.google.com/iam/docs/creating-managing-service-account-keys). Keys generated in the console vs the api will have slighly different structures. Make sure the workflow is standardize to avoid errors. This key can be used for non-GCP resorces to authenticate into the environment with that service account's permissions. 
+- Creating a service account with a minimum number of scopes required: After creating the service account, it should be added to only the roles with the permissions it will need (principle of least privilege). For example, if a server needs to read data from files in a bucket, it should only have read rights to Cloud Storage, and no other rights. There is a private beta for IAM [Conditions](https://cloud.google.com/iam/docs/conditions-overview). See [Docs](https://cloud.google.com/iam/docs/granting-roles-to-service-accounts)
+- Downloading and using a service account private key file: You can create a public/private key pair associated with a service role like [so](https://cloud.google.com/iam/docs/creating-managing-service-account-keys). Keys generated in the console vs the api will have slightly different structures. Make sure the workflow is standardized to avoid errors. This key can be used for non-GCP resources to authenticate into the environment with that service account's permissions. 
 #### Section 4: Integrating Google Cloud Platform Services
 4.1 Integrating an application with Data and Storage services
 - Enabling BigQuery and setting permissions on a dataset: There are a number of [permissions and roles](https://cloud.google.com/bigquery/docs/access-control) associated with BigQuery. Setting up a service account with the desired rights will allow compute resources to access BigQuery data at the desired level (read, write, delete, etc)
 - Writing a SQL query to retrieve data from relational databases: All coding languages and frameworks will have their own tools/libraries for interfacing with SQL databases. Set the database endpoint to the one provided by GCP, and construct queries in SQL. Cloud Spanner allows you to query the db using the [SDK](https://cloud.google.com/spanner/docs/reference/libraries#client-libraries-install-python).
-- Analyzing data using BigQuery: This is a devloper exam, not an analyst one. You can construct SQL-like queries in BigQuery, but for robust analysis, you will need an analytics tool, like [Datalab](https://cloud.google.com/datalab/docs/).
-- Fetching data from various databases: Managed databases have SDKs that can be used for queries in addition to a more conventional interface library in appilcation code. 
+- Analyzing data using BigQuery: This is a developer exam, not an analyst one. You can construct SQL-like queries in BigQuery, but for robust analysis, you will need an analytics tool, like [Datalab](https://cloud.google.com/datalab/docs/).
+- Fetching data from various databases: Managed databases have SDKs that can be used for queries in addition to a more conventional interface library in application code. 
 - Enabling Cloud SQL and configuring an instance: Using this [tutorial](https://cloud.google.com/sql/docs/mysql/quickstart), you can create an instance using the console (or gcloud or the api). After the instance has been created, use `gcloud sql connect <instance_name> --user=root`, provide the root password used when creating the instances, and you will be brought to the MySQL or PostgreSQL prompt. You can create databases and upload data using standard SQL. 
 - Connecting to a Cloud SQL instance: Use the `gcloud sql connect` command above. 
 - Enabling Cloud Spanner and configuring an instance: You can create an instances and configure the schema etc using the [console](https://cloud.google.com/spanner/docs/quickstart-console). 
@@ -226,7 +229,7 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 4.2 Integrating an application with Compute services.
 - Implimenting service discovery in gke, gae, and compute engine: GCP includes service discovery in the form of a metadata server. You can configure project metadata with shared environment variables, and query the metadata server endpoint (cURL).[This](https://medium.com/google-cloud/service-discovery-and-configuration-on-google-cloud-platform-spoiler-it-s-built-in-c741eef6fec2) is an older article talking about its use in for VMs. See the [Docs](https://cloud.google.com/compute/docs/storing-retrieving-metadata?hl=en). In the context of containers, service discovery refers to the types of containers as [services](https://medium.com/google-cloud/running-a-simple-kubernetes-frontend-backend-service-on-google-cloud-platform-85eb0346f600).
 - Writing an application that publishes/consumes from cloud pub sub: use the gcloud sdk to publish and consume. You can also hit the https endpoints to access that functionality. In addition to being able to hit the queues with an sdk and a service account, pub sub can also be exposed as an endpoint, complete with authentication for easy, secure access. 
-- Reading instance metadata to obtain application configuration: #TODO Instances (VMs as well as GAE instances) can be assigned labels (as opposed to network tags)- key value pairs that provide information about the instance. By labeling instances, you can use the `gcloud` tool to filter and sort for specific instances. Instance [metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata) usually includes information about the infrastructure (IP, VM class, applicable service accouts, etc). You can add custom metadata in the form of labels (as opposued to network tags). You can use this to create startup and shutdown scripts. Application configuration would have to be added as custom metadata, which could then be queried for post provisioning, maintanance, governance, and other tasks. (I couldn't find any info on app info in metadata). 
+- Reading instance metadata to obtain application configuration: Instances (VMs as well as GAE instances) can be assigned labels (as opposed to network tags)- key value pairs that provide information about the instance. By labeling instances, you can use the `gcloud` tool to filter and sort for specific instances. Instance [metadata](https://cloud.google.com/compute/docs/storing-retrieving-metadata) usually includes information about the infrastructure (IP, VM class, applicable service accouts, etc). You can add custom metadata in the form of labels (as opposued to network tags). You can use this to create startup and shutdown scripts. Application configuration would have to be added as custom metadata, which could then be queried for post provisioning, maintanance, governance, and other tasks. (I couldn't find any info on app info in metadata). 
 - Authenticating users by using Oauth2 Web Flow and Identity Aware Proxy:
     - Oauth: A widely used auth framework. See [more](https://cloud.google.com/community/tutorials/understanding-oauth2-and-deploy-a-basic-auth-srv-to-cloud-functions). [Here](https://developers.google.com/identity/protocols/OAuth2WebServer) is a detailed walkthrough for configuring OAuth in GCP. 
     ![alt text](https://storage.googleapis.com/gcp-community/tutorials/understanding-oauth2-and-deploy-a-basic-auth-srv-to-cloud-functions/ac.png 'oAuth flow')
@@ -290,14 +293,14 @@ You define your resources in `.yaml` files. The file can contain templates, whic
 - GCP docs are pretty good, relevant links to docs, tutorials, blogs, and other resources are peppered in throughout. 
 
 ### Nota Bene:
-- Cloud SQL not HA cross regionally
-- Bigtable not globally availible
+- Bigtable not availible in all regions- can be global among availible regions 
 - [Stackdriver](https://medium.com/google-cloud/tagged/stackdriver):
     - Trace: [trace](https://github.com/GoogleCloudPlatform/gke-tracing-demo#validation) to see the span of https requests in a SOA app. You can see what calls are taking the most time, and where the bottlenecks are (similar to [jaeger](https://www.jaegertracing.io/), the open source network tool). 
     - Debugger: This [tool](https://cloud.google.com/debugger/docs/quickstart) allows you to debug production applications. You can insert snapshots, which capture state (local vars and call stack) of an application at a specific line in the code. The snapshot will be taken when that line of code is hit while running. You can also request specific info, like `self.request.environ['HTTP_USER_AGENT']` in a snapshot. You can inject a debug logpoint, which lets you inject logging into a running app without restarting it. It can be configured for all GCP compute environments with most runtimes.
     - Monitoring: Usage and alerting(uptime checks, cpu usage, etc). Good overview [here](https://www.youtube.com/watch?v=IMsRWbYKJqg). Some monitoring needs an agent installed on the GCE vms. 
     - Profiler: after configuring [profiler](https://cloud.google.com/profiler/docs/quickstart) in an app, you can view the app in the profiler console. It will generate a flame graph for examining the data. Data can be viewed by service, and filtered on a number of catagories. The levels in the graph represent all processes, from the entire executable (100% of all resources used), down through the modules, into the specific funtions. The exact breakout will vary by runtime/language. Using profiler, you can identify specific funtions in an application that are consuming the most resources. These may be candidates for refactoring or other optimization.
     - Logging: [Logging](https://github.com/GoogleCloudPlatform/gke-tracing-demo#monitoring-and-logging) provides a single pane of glass to view platform and application logs. Based on bottlenecks identified in trace, you can filter the logs to view those related to the specific service that is performing poorly to determine what changes would best address issues.
+
 _Based on [this](https://medium.com/@sathishvj/notes-from-my-beta-google-cloud-professional-cloud-developer-exam-e5826f6e5de1)_
 - [Identity Aware Proxy](https://cloud.google.com/iap/): Sits on a load balancer, app engine, or kubernetes cluster to allow context specific access to resources. Part of a zero-trust network- each request is evaluated and approved or denied independently. Allows for greater access off site, to selected resources, use on mobile devices, and other flexiblity. Some information on [setup](https://medium.com/google-cloud/what-is-beyondcorp-what-is-identity-aware-proxy-de525d9b3f90) and [context](https://medium.com/google-cloud/how-to-get-cloud-identity-aware-proxy-up-and-running-547195f1fce3)
 - [Endpoints](https://cloud.google.com/endpoints/docs/choose-endpoints-option): Per docs: An NGINX-based proxy and distributed architecture give unparalleled performance and scalability. Using an Open API Specification or one of our API frameworks, Cloud Endpoints gives you the tools you need for every phase of API development and provides insight with Stackdriver Monitoring, Trace and Logging.
@@ -313,6 +316,8 @@ _Based on [this](https://medium.com/@sathishvj/notes-from-my-beta-google-cloud-p
         - For automated calls and microservice architectures, a service account can be used. 
         - It is also possible to write your own custom authentication as long as it produces a valid json web token. 
         - You can also set up a [developer portal](https://cloud.google.com/endpoints/docs/openapi/dev-portal-overview) to allow developers to interact.
+
+- 
 - BigQuery:
     - reduce latency in queries: 
     - connect to services: 
@@ -322,28 +327,164 @@ _Based on [this](https://medium.com/@sathishvj/notes-from-my-beta-google-cloud-p
     - ACLs and service accounts: 
     - dataset is collection of tables
     - bq [access control](https://cloud.google.com/bigquery/docs/access-control): data viewer, metadata viewer, data editor, data owner
+    <table>
+  <tbody><tr>
+    <th>Capability</th><th><code>dataViewer</code></th><th><code>dataEditor</code></th><th><code>dataOwner</code></th><th><code>metadataViewer</code></th><th><code>user</code></th><th><code>jobUser</code></th><th><code>admin</code></th>
+  </tr>
+  <tr>
+    <td>List/get projects</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>List tables</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Get table metadata</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+    <tr>
+    <td>Get table data</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create tables</td><td>No</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Modify/delete tables</td><td>No</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Get dataset metadata</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create new datasets</td><td>No</td><td>Yes</td><td>Yes</td><td>No</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Modify/delete datasets</td><td>No</td><td>No</td><td>Yes</td><td>No</td><td>Self-created<br> datasets</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create jobs/queries</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Get jobs</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Self-created<br> jobs</td><td>Any jobs</td>
+  </tr>
+  <tr>
+    <td>List jobs</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Any jobs (jobs from other users are redacte</td><td>No</td><td>Any jobs</td>
+  </tr>
+  <tr>
+    <td>Cancel jobs</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Self-created<br> jobs</td><td>Self-created<br> jobs</td><td>Any jobs</td>
+  </tr>
+  <tr>
+    <td>Get/list saved queries</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create/update/delete saved queries</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create a read session via the BigQuery BigQuery Storage API</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Get transfers</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td>No</td><td>Yes</td>
+  </tr>
+  <tr>
+    <td>Create/update/delete transfers</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>No</td><td>Yes</td>
+  </tr>
+</tbody></table> 
+
+[per](https://cloud.google.com/bigquery/docs/access-control#bigquery.jobUser)
+
 - GKE commands:
-    - `gcloud`
+    - `gcloud container clusters [COMMAND](https://cloud.google.com/sdk/gcloud/reference/container/clusters/)`:
+        - create- Create a cluster for running containers.
+        - delete- Delete an existing cluster for running containers.
+        - describe- Describe an existing cluster for running containers.
+        - get-credentials- Fetch credentials for a running cluster.
+        - list- List existing clusters for running containers.
+        - resize- Resizes an existing cluster for running containers.
+        - update- Update cluster settings for an existing container cluster.
+        - upgrade- Upgrade the Kubernetes version of an existing container cluster.
     - `kutectl`
-    - start/stop
-    - bring up cluster
-    - add nodes
+    ```
+    kubectl apply -f ./my-manifest.yaml           # create resource(s)
+    kubectl apply -f ./my1.yaml -f ./my2.yaml     # create from multiple files
+    kubectl apply -f ./dir                        # create resource(s) in all manifest files in dir
+    kubectl apply -f https://git.io/vPieo         # create resource(s) from url
+    kubectl create deployment nginx --image=nginx  # start a single instance of nginx
+    kubectl explain pods,svc                       # get the documentation for pod and svc manifests
+
+    # Get commands with basic output
+    kubectl get services                          # List all services in the namespace
+    kubectl get pods --all-namespaces             # List all pods in all namespaces
+    kubectl get pods -o wide                      # List all pods in the namespace, with more details
+    kubectl get deployment my-dep                 # List a particular deployment
+    kubectl get pods --include-uninitialized      # List all pods in the namespace, including uninitialized ones
+    kubectl get pod my-pod -o yaml                # Get a pod's YAML
+    kubectl get pod my-pod -o yaml --export       # Get a pod's YAML without cluster specific information
+
+    # Describe commands with verbose output
+    kubectl describe nodes my-node
+    kubectl describe pods my-pod
+
+    kubectl get services --sort-by=.metadata.name # List Services Sorted by Name
+
+    kubectl set image deployment/frontend www=image:v2               # Rolling update "www" containers of "frontend" deployment, updating the image
+    kubectl rollout undo deployment/frontend                         # Rollback to the previous deployment
+    kubectl rollout status -w deployment/frontend                    # Watch rolling update status of "frontend" deployment until completion
+
+    kubectl label pods my-pod new-label=awesome                      # Add a Label
+    kubectl annotate pods my-pod icon-url=http://goo.gl/XXBTWq       # Add an annotation
+    kubectl autoscale deployment foo --min=2 --max=10                # Auto scale a deployment "foo"
+
+    kubectl delete -f ./pod.json                                              # Delete a pod using the type and name specified in pod.json
+    kubectl delete pod,service baz foo                                        # Delete pods and services with same names "baz" and "foo"
+    kubectl delete pods,services -l name=myLabel                              # Delete pods and services with label name=myLabel
+    kubectl delete pods,services -l name=myLabel --include-uninitialized      # Delete pods and services, including uninitialized ones, with label name=myLabel
+    kubectl -n my-ns delete po,svc --all   
+
+    ```
+    [per](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+    - start/stop: `gcloud container clusters resize $CLUSTER --size=0 --zone=$ZONE`
+    - bring up cluster: `gcloud container clusters create <OPTIONS>`
+    - add nodes: `gcloud container clusters resize [CLUSTER_NAME] --node-pool [POOL_NAME] --num-nodes [NUM_NODES]`
     - Error codes:
-        - 400
-        - 403
+        - 400- Your Compute Engine and/or Kubernetes Engine service account has been deleted or edited. When you enable the Compute Engine or Kubernetes Engine API, a service account is created and given edit permissions on your project. If at any point you edit the permissions, remove the account entirely, or disable the API, cluster creation and all management functionality will fail. [per](https://cloud.google.com/kubernetes-engine/docs/troubleshooting)
+        - 403- Forbidden by RBAC
     - pipeline integration
 - Cloud SQL
-    - scale between regions
-    - roles
+    - scale between regions- can't do it... can failover, but 
+    - roles: admin, editor, viewer, client
     - connect w/ ssl or w/o ssl
     - migrate from on prem (case study)
+        - csv or sqldump
+    - Cloud SQL not HA cross regionally
+        - read replicas in same zone
+        - failover replicas in same region
+        - [More](https://cloud.google.com/sql/docs/mysql/high-availability)
+        - For global reachablity, switch to Spanner
 - Cloud Spanner:
-    - use case
-    - minimize costs- configuration and node count
+    - use case: global availiblity, ACID++
+    - minimize costs:
+        - configuration: instance configuration defines the geographic placement and replication of the databases in that instance. When you create an instance, you must configure it as either regional (that is, all the resources are contained within a single GCP region) or multi-region 
+        - node count: Each node provides up to 2 TiB of storage. The peak read and write throughput values that nodes can provide depend on the instance configuration, as well as on schema design and dataset characteristics
+        - [More](https://cloud.google.com/spanner/docs/instances)
 - IAM:
     - customize permissions for hybrid access
-- Cloud build
-    - build steps
+- Cloud build: Its Jenkins. ¯\\_ _(ツ)_ _/¯
+    - build steps can be defined in yaml (or json):
+    ```
+    steps:
+    - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/my-project/my-image', '.']
+    timeout: 500s
+    - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/my-project/my-image']
+    - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['set', 'image', 'deployment/my-deployment', 'my-container=gcr.io/my-project/my-image']
+    env:
+    - 'CLOUDSDK_COMPUTE_ZONE=us-east4-b'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=my-cluster'
+    options:
+        machineType: 'N1_HIGHCPU_8'
+    timeout: 660s
+    tags: ['mytag1', 'mytag2']
+    images: ['gcr.io/my-project/myimage']
+    ```
 - Deployment manager template
 
 
@@ -399,7 +540,8 @@ _Based on [this](https://medium.com/@sathishvj/notes-from-my-beta-google-cloud-p
 
 5.  Your teammate has asked you to review the code below. Its purpose is to query account entities in Cloud Datastore for those with a balance greater than 10000 and an age less than 4. Which improvement should you suggest your teammate make?
 ![alt text](https://lh3.googleusercontent.com/rlfMjBQ84eIEeHBy52q14N54IFPz0DQS7Sx9sVht7kVbMtIdw2X7Ig75TcoJi9_V1sCMU7ORDA=w740 "DataStore Query")
-   Send two queries- one for balances over 10000, and another for ages less than 4- and compute the intersection- two inequality comparisons aren't permitted in a Datastore query and it requires two queries to be merged
+
+      Send two queries- one for balances over 10000, and another for ages less than 4- and compute the intersection- two inequality comparisons aren't permitted in a Datastore query and it requires two queries to be merged
 
 6. Your organization has grown, and new teams need access to manage network connectivity within and across projects. You are now seeing intermittent timeout errors in your application. You want to find the cause of the problem. What should you do?
 
